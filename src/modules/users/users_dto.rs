@@ -19,3 +19,9 @@ pub struct UserModel {
     pub role: String,
     pub is_stadium_owner_request: bool,
 }
+
+pub enum RolesEnum {
+    User,
+    StadiumOwner,
+    Admin,
+}

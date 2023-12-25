@@ -10,13 +10,16 @@ use axum::{
     Router,
 };
 
-use common::auth_middleware::auth_middleware;
+use common::{auth_middleware::auth_middleware, role_middleware::role_middleware};
 use config::Config;
 use dotenv::dotenv;
 use modules::{
     auth::auth_controller::{login, register_user},
     restaurants::restaurants_controller::{create_restaurant, get_restaurants},
-    users::users_controller::{get_me, get_users},
+    users::{
+        users_controller::{get_me, get_users},
+        users_dto::RolesEnum,
+    },
 };
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -57,10 +60,29 @@ async fn main() {
         env: config,
     });
 
-    let restaurants_routes = Router::new().route("/", get(get_restaurants).post(create_restaurant));
+    let restaurants_routes = Router::new()
+        .route("/", post(create_restaurant))
+        .route_layer(middleware::from_fn_with_state(
+            shared_state.clone(),
+            |state, req, next| role_middleware(state, req, next, RolesEnum::StadiumOwner),
+        ))
+        .layer(middleware::from_fn_with_state(
+            shared_state.clone(),
+            auth_middleware,
+        ))
+        .route("/", get(get_restaurants));
+
     let users_routes = Router::new()
         .route("/", get(get_users))
-        .route("/me", get(get_me));
+        .route_layer(middleware::from_fn_with_state(
+            shared_state.clone(),
+            |state, req, next| role_middleware(state, req, next, RolesEnum::Admin),
+        ))
+        .route("/me", get(get_me))
+        .layer(middleware::from_fn_with_state(
+            shared_state.clone(),
+            auth_middleware,
+        ));
 
     let auth_routes = Router::new()
         .route("/login", post(login))
@@ -69,10 +91,6 @@ async fn main() {
     let api_routes = Router::new()
         .nest("/restaurants", restaurants_routes)
         .nest("/users", users_routes)
-        .layer(middleware::from_fn_with_state(
-            shared_state.clone(),
-            auth_middleware,
-        ))
         .nest("/auth", auth_routes);
 
     tracing_subscriber::fmt()

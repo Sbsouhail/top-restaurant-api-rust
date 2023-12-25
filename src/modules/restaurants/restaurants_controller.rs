@@ -21,7 +21,7 @@ pub async fn get_restaurants(
     let offset = (page.saturating_sub(1)) * page_size;
     let res = sqlx::query_as!(
         Restaurant,
-        "SELECT restaurant_id,name,is_accepted,user_id from restaurants LIMIT $1 OFFSET $2",
+        "SELECT restaurant_id,name,is_accepted,user_id from restaurants where is_accepted = true LIMIT $1 OFFSET $2",
         page_size,
         offset
     )
@@ -56,9 +56,6 @@ pub async fn create_restaurant(
     Extension(current_user): Extension<Arc<User>>,
     Json(create_restaurant_dto): Json<CreateRestaurant>,
 ) -> AppResult<Restaurant> {
-    if current_user.role != "StadiumOwner" {
-        return AppResult::Error(StatusCode::FORBIDDEN, String::from("Forbidden resources!"));
-    }
     let res = sqlx::query_as!(
         Restaurant,
         "INSERT INTO restaurants (name,user_id) VALUES ($1,$2) RETURNING restaurant_id,name,is_accepted,user_id",
