@@ -15,9 +15,11 @@ use config::Config;
 use dotenv::dotenv;
 use modules::{
     auth::auth_controller::{login, register_user},
-    restaurants::restaurants_controller::{create_restaurant, get_restaurants},
+    restaurants::restaurants_controller::{
+        accept_restaurant, create_restaurant, get_my_restaurants, get_restaurants,
+    },
     users::{
-        users_controller::{get_me, get_users},
+        users_controller::{accept_stadium_owner, get_me, get_users, request_stadium_owner},
         users_dto::RolesEnum,
     },
 };
@@ -61,7 +63,13 @@ async fn main() {
     });
 
     let restaurants_routes = Router::new()
+        .route("/:restaurant_id/accept", post(accept_restaurant))
+        // .route_layer(middleware::from_fn_with_state(
+        //     shared_state.clone(),
+        //     |state, req, next| role_middleware(state, req, next, RolesEnum::Admin),
+        // ))
         .route("/", post(create_restaurant))
+        .route("/me", get(get_my_restaurants))
         .route_layer(middleware::from_fn_with_state(
             shared_state.clone(),
             |state, req, next| role_middleware(state, req, next, RolesEnum::StadiumOwner),
@@ -74,9 +82,15 @@ async fn main() {
 
     let users_routes = Router::new()
         .route("/", get(get_users))
+        .route("/stadium-owner/:user_id/accept", post(accept_stadium_owner))
         .route_layer(middleware::from_fn_with_state(
             shared_state.clone(),
             |state, req, next| role_middleware(state, req, next, RolesEnum::Admin),
+        ))
+        .route("/stadium-owner", post(request_stadium_owner))
+        .route_layer(middleware::from_fn_with_state(
+            shared_state.clone(),
+            |state, req, next| role_middleware(state, req, next, RolesEnum::User),
         ))
         .route("/me", get(get_me))
         .layer(middleware::from_fn_with_state(
