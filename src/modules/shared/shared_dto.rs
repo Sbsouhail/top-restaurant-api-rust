@@ -15,17 +15,18 @@ pub struct PaginatedList<T> {
 
 #[derive(Deserialize)]
 pub struct PaginationInput {
+    #[serde(default = "default_page")]
     pub page: i64,
+    #[serde(default = "default_page_size")]
     pub page_size: i64,
 }
 
-impl Default for PaginationInput {
-    fn default() -> Self {
-        Self {
-            page: 1,
-            page_size: 10,
-        }
-    }
+fn default_page() -> i64 {
+    1
+}
+
+fn default_page_size() -> i64 {
+    10
 }
 
 pub enum AppResult<T> {

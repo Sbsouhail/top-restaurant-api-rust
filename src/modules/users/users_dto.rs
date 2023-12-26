@@ -8,7 +8,7 @@ pub struct User {
     pub last_name: String,
     pub email: String,
     pub role: String,
-    pub is_stadium_owner_request: bool,
+    pub is_restaurant_owner_request: bool,
 }
 
 #[derive(Debug, FromRow, Deserialize, Serialize)]
@@ -17,11 +17,26 @@ pub struct UserModel {
     pub email: String,
     pub password_hash: String,
     pub role: String,
-    pub is_stadium_owner_request: bool,
+    pub is_restaurant_owner_request: bool,
 }
 
 pub enum RolesEnum {
     User,
-    StadiumOwner,
+    RestaurantOwner,
     Admin,
+}
+
+#[derive(Deserialize)]
+pub struct UserFilters {
+    #[serde(default = "default_status")]
+    pub is_restaurant_owner_request: bool,
+    #[serde(default = "default_role")]
+    pub role: String,
+}
+
+fn default_role() -> String {
+    "User".to_string()
+}
+fn default_status() -> bool {
+    true
 }

@@ -13,3 +13,13 @@ pub struct Restaurant {
     pub is_accepted: bool,
     pub user_id: i64,
 }
+
+#[derive(Deserialize)]
+pub struct RestaurantFilters {
+    #[serde(default = "default_status")]
+    pub is_accepted: bool,
+}
+
+fn default_status() -> bool {
+    true
+}

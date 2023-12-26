@@ -7,6 +7,6 @@ CREATE TABLE
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'User',
-        is_stadium_owner_request BOOLEAN NOT NULL DEFAULT false,
-        CHECK (role IN ('User', 'StadiumOwner', 'Admin'))
+        is_restaurant_owner_request BOOLEAN NOT NULL DEFAULT false,
+        CHECK (role IN ('User', 'RestaurantOwner', 'Admin'))
     );

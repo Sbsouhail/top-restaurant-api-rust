@@ -13,15 +13,19 @@ use axum::{
     http::StatusCode,
 };
 
+use super::restaurants_dto::RestaurantFilters;
+
 pub async fn get_restaurants(
     State(state): State<Arc<AppState>>,
     pagination_input: Query<PaginationInput>,
+    filter_input: Query<RestaurantFilters>,
 ) -> AppResult<PaginatedList<Restaurant>> {
     let PaginationInput { page, page_size } = pagination_input.0;
     let offset = (page.saturating_sub(1)) * page_size;
     let res = sqlx::query_as!(
         Restaurant,
-        "SELECT restaurant_id,name,is_accepted,user_id from restaurants where is_accepted = true LIMIT $1 OFFSET $2",
+        "SELECT restaurant_id,name,is_accepted,user_id from restaurants where is_accepted = $1 LIMIT $2 OFFSET $3",
+        filter_input.is_accepted,
         page_size,
         offset
     )
@@ -29,7 +33,8 @@ pub async fn get_restaurants(
     .await;
 
     let count: i64 = match sqlx::query_scalar!(
-        "SELECT COUNT (restaurant_id) FROM restaurants where is_accepted = true"
+        "SELECT COUNT (restaurant_id) FROM restaurants where is_accepted = $1",
+        filter_input.is_accepted
     )
     .fetch_one(&state.db)
     .await
