@@ -25,7 +25,7 @@ pub async fn auth_middleware(
             Some(claims) => {
                 let res = sqlx::query_as!(
                     User,
-                    "SELECT email,name,last_name,user_id,role,is_restaurant_owner_request from users where user_id = $1",
+                    "SELECT email,name,last_name,user_id,role,status,email_validated from users where user_id = $1 AND (status = 'Accepted' OR role = 'User' OR role = 'Admin')",
                     claims.sub
                 )
                 .fetch_one(&state.db)

@@ -4,9 +4,12 @@ CREATE TABLE
         user_id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         last_name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
+        email TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'User',
-        is_restaurant_owner_request BOOLEAN NOT NULL DEFAULT false,
-        CHECK (role IN ('User', 'RestaurantOwner', 'Admin'))
+        email_validated BOOLEAN NOT NULL DEFAULT false,
+        CHECK (role IN ('User', 'RestaurantOwner', 'Admin')),
+        status TEXT NOT NULL DEFAULT 'Pending',
+        CHECK (status IN ('Pending', 'Accepted', 'Blocked')),
+        UNIQUE (role, email)
     );

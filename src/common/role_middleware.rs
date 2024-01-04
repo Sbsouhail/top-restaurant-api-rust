@@ -19,7 +19,7 @@ pub async fn role_middleware(
             Ok(response)
         }
         "RestaurantOwner" => match accepted_role {
-            RolesEnum::RestaurantOwner | RolesEnum::User => {
+            RolesEnum::RestaurantOwner => {
                 let response = next.run(request).await;
                 Ok(response)
             }

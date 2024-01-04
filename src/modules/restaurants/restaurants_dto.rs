@@ -10,7 +10,6 @@ pub struct CreateRestaurant {
 pub struct Restaurant {
     pub restaurant_id: i64,
     pub name: String,
-    pub is_accepted: bool,
     pub user_id: i64,
 }
 
