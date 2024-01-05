@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
+    extract::DefaultBodyLimit,
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
         HeaderValue, Method,
@@ -17,6 +18,7 @@ use modules::{
     auth::auth_controller::{
         login, login_restaurant_owner, register_restaurant_owner, register_user,
     },
+    files::files_controller::upload,
     restaurants::restaurants_controller::{create_restaurant, get_my_restaurants, get_restaurants},
     users::{
         users_controller::{accept_restaurant_owner, block_restaurant_owner, get_me, get_users},
@@ -26,7 +28,7 @@ use modules::{
 use pwhash::bcrypt;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 
 mod common;
 mod config;
@@ -128,10 +130,16 @@ async fn main() {
             post(register_restaurant_owner),
         );
 
+    let files_routes = Router::new()
+        .nest_service("/", ServeDir::new("public"))
+        .route("/upload", post(upload))
+        .layer(DefaultBodyLimit::max(10000000));
+
     let api_routes = Router::new()
         .nest("/restaurants", restaurants_routes)
         .nest("/users", users_routes)
-        .nest("/auth", auth_routes);
+        .nest("/auth", auth_routes)
+        .nest("/files", files_routes);
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)

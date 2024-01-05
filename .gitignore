@@ -4,3 +4,6 @@ target/
 
 # Env
 .env
+
+# Upload 
+public/uploads

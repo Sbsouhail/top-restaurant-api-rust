@@ -21,7 +21,7 @@ pub async fn get_restaurants(
     let offset = (page.saturating_sub(1)) * page_size;
     let res = sqlx::query_as!(
         Restaurant,
-        "SELECT restaurant_id,name,user_id from restaurants LIMIT $1 OFFSET $2",
+        "SELECT restaurant_id,name,user_id,location,cover_image_uri from restaurants LIMIT $1 OFFSET $2",
         page_size,
         offset
     )
@@ -60,7 +60,7 @@ pub async fn get_my_restaurants(
     let offset = (page.saturating_sub(1)) * page_size;
     let res = sqlx::query_as!(
         Restaurant,
-        "SELECT restaurant_id,name,user_id from restaurants where user_id = $1 LIMIT $2 OFFSET $3",
+        "SELECT restaurant_id,name,user_id,location,cover_image_uri from restaurants where user_id = $1 LIMIT $2 OFFSET $3",
         current_user.user_id,
         page_size,
         offset
@@ -101,9 +101,11 @@ pub async fn create_restaurant(
 ) -> AppResult<Restaurant> {
     let res = sqlx::query_as!(
         Restaurant,
-        "INSERT INTO restaurants (name,user_id) VALUES ($1,$2) RETURNING restaurant_id,name,user_id",
+        "INSERT INTO restaurants (name,user_id,location,cover_image_uri) VALUES ($1,$2,$3,$4) RETURNING restaurant_id,name,user_id,location,cover_image_uri",
         create_restaurant_dto.name,
-        current_user.user_id
+        current_user.user_id,
+        create_restaurant_dto.location,
+        create_restaurant_dto.cover_image_uri
     )
     .fetch_one(&state.db)
     .await;
