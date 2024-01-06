@@ -17,6 +17,16 @@ pub struct Restaurant {
     pub cover_image_uri: String,
 }
 
+#[derive(Serialize, FromRow)]
+pub struct RestaurantUser {
+    pub restaurant_id: i64,
+    pub name: String,
+    pub user_id: i64,
+    pub location: String,
+    pub cover_image_uri: String,
+    pub user_email: String,
+}
+
 #[derive(Deserialize)]
 pub struct RestaurantFilters {
     #[serde(default = "default_status")]

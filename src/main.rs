@@ -7,7 +7,7 @@ use axum::{
         HeaderValue, Method,
     },
     middleware,
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 
@@ -19,7 +19,9 @@ use modules::{
         login, login_restaurant_owner, register_restaurant_owner, register_user,
     },
     files::files_controller::upload,
-    restaurants::restaurants_controller::{create_restaurant, get_my_restaurants, get_restaurants},
+    restaurants::restaurants_controller::{
+        create_restaurant, delete_restaurant, get_my_restaurants, get_restaurant, get_restaurants,
+    },
     users::{
         users_controller::{accept_restaurant_owner, block_restaurant_owner, get_me, get_users},
         users_dto::{RolesEnum, User},
@@ -91,10 +93,12 @@ async fn main() {
             shared_state.clone(),
             |state, req, next| role_middleware(state, req, next, RolesEnum::RestaurantOwner),
         ))
+        .route("/:restaurant_id", delete(delete_restaurant))
         .layer(middleware::from_fn_with_state(
             shared_state.clone(),
             auth_middleware,
         ))
+        .route("/:restaurant_id", get(get_restaurant))
         .route("/", get(get_restaurants));
 
     let users_routes = Router::new()

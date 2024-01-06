@@ -4,24 +4,35 @@ use crate::{
     modules::{
         restaurants::restaurants_dto::{CreateRestaurant, Restaurant},
         shared::shared_dto::{AppResult, PaginatedList, PaginationInput},
-        users::users_dto::User,
+        users::users_dto::User, files::files_controller::delete_file,
     },
     AppState,
 };
 use axum::{
-    extract::{Extension, Json, Query, State},
+    extract::{Extension, Json, Path, Query, State},
     http::StatusCode,
-};
+    };
+
+use super::restaurants_dto::RestaurantUser;
 
 pub async fn get_restaurants(
     State(state): State<Arc<AppState>>,
     pagination_input: Query<PaginationInput>,
-) -> AppResult<PaginatedList<Restaurant>> {
+) -> AppResult<PaginatedList<RestaurantUser>> {
     let PaginationInput { page, page_size } = pagination_input.0;
     let offset = (page.saturating_sub(1)) * page_size;
     let res = sqlx::query_as!(
-        Restaurant,
-        "SELECT restaurant_id,name,user_id,location,cover_image_uri from restaurants LIMIT $1 OFFSET $2",
+        RestaurantUser,
+        "SELECT 
+        restaurants.restaurant_id, 
+        restaurants.name, 
+        restaurants.user_id,
+        restaurants.location,       
+        restaurants.cover_image_uri,       
+        users.email AS user_email
+        FROM restaurants
+        JOIN users ON restaurants.user_id = users.user_id        
+        LIMIT $1 OFFSET $2",
         page_size,
         offset
     )
@@ -112,6 +123,65 @@ pub async fn create_restaurant(
 
     return match res {
         Ok(restaurant) => AppResult::Result(StatusCode::CREATED, restaurant),
+        Err(_) => AppResult::Error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            String::from("Something went wrong"),
+        ),
+    };
+}
+
+pub async fn get_restaurant(
+    State(state): State<Arc<AppState>>,
+    Path(restaurant_id): Path<i32>,
+) -> AppResult<Restaurant> {
+    let res = sqlx::query_as!(
+        Restaurant,
+        "SELECT restaurant_id,name,user_id,location,cover_image_uri from restaurants where restaurant_id = $1",
+        restaurant_id,
+    )
+    .fetch_one(&state.db)
+    .await;
+
+    return match res {
+        Ok(restaurant) => AppResult::Result(StatusCode::OK, restaurant),
+        Err(_) => AppResult::Error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            String::from("Something went wrong"),
+        ),
+    };
+}
+
+pub async fn delete_restaurant(
+    State(state): State<Arc<AppState>>,
+    Extension(current_user): Extension<Arc<User>>,
+    Path(restaurant_id): Path<i32>,
+) -> AppResult<Restaurant> {
+    let res = match current_user.role.as_str() {
+        "Admin" => 
+            sqlx::query_as!(
+                Restaurant,
+                "DELETE FROM restaurants Where restaurant_id = $1 RETURNING restaurant_id,name,user_id,location,cover_image_uri",
+                restaurant_id
+            )
+            .fetch_one(&state.db)
+            .await,
+        
+
+        _ => sqlx::query_as!(
+            Restaurant,
+            "DELETE FROM restaurants Where restaurant_id = $1 and user_id = $2 RETURNING restaurant_id,name,user_id,location,cover_image_uri",
+            restaurant_id,
+            current_user.user_id
+        )
+        .fetch_one(&state.db)
+        .await,
+    };
+
+    return match res {
+        Ok(restaurant) => {
+            delete_file(restaurant.cover_image_uri.clone());
+
+            AppResult::Result(StatusCode::OK, restaurant)},
         Err(_) => AppResult::Error(
             StatusCode::INTERNAL_SERVER_ERROR,
             String::from("Something went wrong"),
