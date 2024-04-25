@@ -33,8 +33,7 @@ pub async fn get_users(
     .await;
 
     let count: i64 = match sqlx::query_scalar!(
-        "SELECT COUNT (user_id) FROM users where status=$1 AND role=$2",
-        filters_input.status,
+        "SELECT COUNT (user_id) FROM users where role=$1",
         filters_input.role,
     )
     .fetch_one(&state.db)

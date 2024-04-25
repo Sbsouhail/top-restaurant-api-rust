@@ -6,6 +6,8 @@ pub struct CreateRestaurant {
     pub name: String,
     pub location: String,
     pub cover_image_uri: String,
+    pub phone: String,
+    pub email: String,
 }
 
 #[derive(Serialize, FromRow)]
@@ -15,6 +17,8 @@ pub struct Restaurant {
     pub user_id: i64,
     pub location: String,
     pub cover_image_uri: String,
+    pub phone: String,
+    pub email: String,
 }
 
 #[derive(Serialize, FromRow)]
@@ -23,6 +27,8 @@ pub struct RestaurantUser {
     pub name: String,
     pub user_id: i64,
     pub location: String,
+    pub phone: String,
+    pub email: String,
     pub cover_image_uri: String,
     pub user_email: String,
 }

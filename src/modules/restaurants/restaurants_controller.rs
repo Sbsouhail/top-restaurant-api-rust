@@ -29,6 +29,8 @@ pub async fn get_restaurants(
         restaurants.user_id,
         restaurants.location,       
         restaurants.cover_image_uri,       
+        restaurants.phone,       
+        restaurants.email,       
         users.email AS user_email
         FROM restaurants
         JOIN users ON restaurants.user_id = users.user_id        
@@ -71,7 +73,7 @@ pub async fn get_my_restaurants(
     let offset = (page.saturating_sub(1)) * page_size;
     let res = sqlx::query_as!(
         Restaurant,
-        "SELECT restaurant_id,name,user_id,location,cover_image_uri from restaurants where user_id = $1 LIMIT $2 OFFSET $3",
+        "SELECT restaurant_id,name,user_id,location,cover_image_uri,phone,email from restaurants where user_id = $1 LIMIT $2 OFFSET $3",
         current_user.user_id,
         page_size,
         offset
@@ -112,11 +114,13 @@ pub async fn create_restaurant(
 ) -> AppResult<Restaurant> {
     let res = sqlx::query_as!(
         Restaurant,
-        "INSERT INTO restaurants (name,user_id,location,cover_image_uri) VALUES ($1,$2,$3,$4) RETURNING restaurant_id,name,user_id,location,cover_image_uri",
+        "INSERT INTO restaurants (name,user_id,location,cover_image_uri,phone,email) VALUES ($1,$2,$3,$4,$5,$6) RETURNING restaurant_id,name,user_id,location,cover_image_uri,phone,email",
         create_restaurant_dto.name,
         current_user.user_id,
         create_restaurant_dto.location,
-        create_restaurant_dto.cover_image_uri
+        create_restaurant_dto.cover_image_uri,
+        create_restaurant_dto.phone,
+        create_restaurant_dto.email
     )
     .fetch_one(&state.db)
     .await;
@@ -136,7 +140,7 @@ pub async fn get_restaurant(
 ) -> AppResult<Restaurant> {
     let res = sqlx::query_as!(
         Restaurant,
-        "SELECT restaurant_id,name,user_id,location,cover_image_uri from restaurants where restaurant_id = $1",
+        "SELECT restaurant_id,name,user_id,location,cover_image_uri,phone,email from restaurants where restaurant_id = $1",
         restaurant_id,
     )
     .fetch_one(&state.db)
@@ -160,7 +164,7 @@ pub async fn delete_restaurant(
         "Admin" => 
             sqlx::query_as!(
                 Restaurant,
-                "DELETE FROM restaurants Where restaurant_id = $1 RETURNING restaurant_id,name,user_id,location,cover_image_uri",
+                "DELETE FROM restaurants Where restaurant_id = $1 RETURNING restaurant_id,name,user_id,location,cover_image_uri,phone,email",
                 restaurant_id
             )
             .fetch_one(&state.db)
@@ -169,7 +173,7 @@ pub async fn delete_restaurant(
 
         _ => sqlx::query_as!(
             Restaurant,
-            "DELETE FROM restaurants Where restaurant_id = $1 and user_id = $2 RETURNING restaurant_id,name,user_id,location,cover_image_uri",
+            "DELETE FROM restaurants Where restaurant_id = $1 and user_id = $2 RETURNING restaurant_id,name,user_id,location,cover_image_uri,phone,email",
             restaurant_id,
             current_user.user_id
         )

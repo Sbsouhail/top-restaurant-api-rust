@@ -4,10 +4,10 @@ use axum::{
     extract::DefaultBodyLimit,
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
-        HeaderValue, Method,
+        HeaderValue, Method, StatusCode,
     },
     middleware,
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
     Router,
 };
 
@@ -19,9 +19,18 @@ use modules::{
         login, login_restaurant_owner, register_restaurant_owner, register_user,
     },
     files::files_controller::upload,
+    restaurant_menu_items::restaurant_menu_items_controller::{
+        create_restaurant_menu_item, delete_restaurant_menu_item, get_restaurant_meals,
+        get_restaurant_menu_items,
+    },
+    restaurant_menus::restaurant_menus_controller::{
+        activate_restaurant_menu, create_restaurant_menu, delete_restaurant_menu,
+        disactivate_restaurant_menu, get_restaurant_menus, get_restaurant_menus_pub,
+    },
     restaurants::restaurants_controller::{
         create_restaurant, delete_restaurant, get_my_restaurants, get_restaurant, get_restaurants,
     },
+    shared::shared_dto::AppResult,
     users::{
         users_controller::{accept_restaurant_owner, block_restaurant_owner, get_me, get_users},
         users_dto::{RolesEnum, User},
@@ -86,6 +95,38 @@ async fn main() {
         Err(_) => println!("Admin seed failed"),
     };
 
+    let restaurant_menu_items_routes = Router::new()
+        .route("/", post(create_restaurant_menu_item))
+        .route(
+            "/:restaurant_menu_item_id",
+            delete(delete_restaurant_menu_item),
+        )
+        .route("/", get(get_restaurant_menu_items));
+
+    let restaurant_menus_routes = Router::new()
+        .route("/", post(create_restaurant_menu))
+        .route("/", get(get_restaurant_menus))
+        .route(
+            "/:restaurant_menu_id/activate",
+            patch(activate_restaurant_menu),
+        )
+        .route(
+            "/:restaurant_menu_id/disactivate",
+            patch(disactivate_restaurant_menu),
+        )
+        .route("/:restaurant_menu_id", delete(delete_restaurant_menu))
+        .nest(
+            "/:restaurant_menu_id/items",
+            restaurant_menu_items_routes.clone(),
+        );
+
+    let restaurant_menus_public_routes = Router::new()
+        .route("/", get(get_restaurant_menus_pub))
+        .nest(
+            "/:restaurant_menu_id/items",
+            restaurant_menu_items_routes.clone(),
+        );
+
     let restaurants_routes = Router::new()
         .route("/", post(create_restaurant))
         .route("/me", get(get_my_restaurants))
@@ -94,11 +135,14 @@ async fn main() {
             |state, req, next| role_middleware(state, req, next, RolesEnum::RestaurantOwner),
         ))
         .route("/:restaurant_id", delete(delete_restaurant))
+        .nest("/:restaurant_id/my_menus", restaurant_menus_routes.clone())
         .layer(middleware::from_fn_with_state(
             shared_state.clone(),
             auth_middleware,
         ))
         .route("/:restaurant_id", get(get_restaurant))
+        .nest("/:restaurant_id/menus", restaurant_menus_public_routes)
+        .route("/:restaurant_id/meals", get(get_restaurant_meals))
         .route("/", get(get_restaurants));
 
     let users_routes = Router::new()
@@ -130,7 +174,7 @@ async fn main() {
         .route("/login/restaurant-owner", post(login_restaurant_owner))
         .route("/register", post(register_user))
         .route(
-            "/register-restaurant-onwner",
+            "/register-restaurant-owner",
             post(register_restaurant_owner),
         );
 
@@ -143,7 +187,8 @@ async fn main() {
         .nest("/restaurants", restaurants_routes)
         .nest("/users", users_routes)
         .nest("/auth", auth_routes)
-        .nest("/files", files_routes);
+        .nest("/files", files_routes)
+        .route("/", get(hello));
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
@@ -163,4 +208,8 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+pub async fn hello() -> AppResult<String> {
+    AppResult::Result(StatusCode::OK, String::from("Hello world!"))
 }
